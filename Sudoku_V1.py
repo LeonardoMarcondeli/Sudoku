@@ -1,6 +1,7 @@
 import pygame as pg
 import random
 import copy
+import time as time
 
 # ------------------------ CONFIG ------------------------ #
 WINDOW_SIZE   = (1000, 700)      # Tamanho da janela principal
@@ -74,6 +75,7 @@ def is_board_consistent(b):                        # Verifica se não há confli
     return True
 
 def solve_backtracking(b, randomize=False):        # Algoritmo de backtracking para resolver o tabuleiro
+    global solve_attempts  # <- necessário para contar corretamente
     for y in range(9):
         for x in range(9):
             if b[y][x] == EMPTY:
@@ -82,6 +84,7 @@ def solve_backtracking(b, randomize=False):        # Algoritmo de backtracking p
                     random.shuffle(nums)
                 for n in nums:
                     if valid_number(b, x, y, n):
+                        solve_attempts += 1  # <-- conta tentativa
                         b[y][x] = n
                         if solve_backtracking(b, randomize):
                             return True
@@ -136,11 +139,28 @@ def draw_button(surf, rect, text):                 # Desenha um botão com texto
     lbl = SMALL.render(text, True, WHITE)
     surf.blit(lbl, (rect.x + (rect.width - lbl.get_width())//2, rect.y + (rect.height - lbl.get_height())//2))
 
-def draw_message(surf):                            # Mostra uma mensagem ao lado do tabuleiro
+def draw_message(surf):
     if message:
-        lbl = SMALL.render(message, True, msg_color)
-        rect = lbl.get_rect(center=(825, 270))
-        surf.blit(lbl, rect)
+        # Quebra em várias linhas se o texto for muito longo
+        lines = []
+        words = message.split()
+        current_line = ""
+
+        for word in words:
+            test_line = f"{current_line} {word}".strip()
+            if SMALL.size(test_line)[0] < 250:  # Limite de largura
+                current_line = test_line
+            else:
+                lines.append(current_line)
+                current_line = word
+        lines.append(current_line)  # Última linha
+
+        x = 700  # Alinhado com os botões da direita
+        y = 270  # Começa abaixo dos botões
+
+        for i, line in enumerate(lines):
+            lbl = SMALL.render(line, True, msg_color)
+            surf.blit(lbl, (x, y + i * 30))  # 30 px de espaçamento vertical por linha
 
 # ---------- MENU DRAW ---------- #
 MENU_RANDOM_RECT = pg.Rect(300, 200, 400, 80)
@@ -164,23 +184,22 @@ while running:
         if ev.type == pg.QUIT:
             running = False
 
-        # Eventos durante o menu
         if game_phase == "menu":
             if ev.type == pg.MOUSEBUTTONDOWN and ev.button == 1:
                 if MENU_RANDOM_RECT.collidepoint(ev.pos):
-                    board        = generate_puzzle(clues=35)
-                    game_phase   = "play"
-                    message      = ""
+                    solve_attempts = 0
+                    board = generate_puzzle(clues=35)
+                    game_phase = "play"
+                    message = ""
                     input_locked = False
                 elif MENU_CUSTOM_RECT.collidepoint(ev.pos):
-                    board        = new_board()
-                    game_phase   = "play"
-                    message      = "Insira suas pistas e clique Solve"
-                    msg_color    = BLACK
+                    board = new_board()
+                    game_phase = "play"
+                    message = "Insira suas pistas e clique Solve"
+                    msg_color = BLACK
                     input_locked = False
             continue
 
-        # Eventos durante o jogo
         if game_phase == "play":
             if ev.type == pg.MOUSEBUTTONDOWN and ev.button == 1:
                 mx, my = ev.pos
@@ -193,21 +212,24 @@ while running:
                 if SOLVE_RECT.collidepoint(ev.pos):
                     if is_board_consistent(board):
                         temp = copy.deepcopy(board)
+                        start_time = time.time()
+                        solve_attempts = 0
                         if solve_backtracking(temp):
-                            board[:]   = temp
-                            message    = "Solução encontrada!"
-                            msg_color  = GREEN
+                            elapsed = time.time() - start_time
+                            board[:] = temp
+                            message = f"Resolvido em {elapsed:.5f}s ({solve_attempts} tentativas)"
+                            msg_color = GREEN
                             input_locked = True
                         else:
-                            message   = "Sem solução."
+                            message = "Sem solução."
                             msg_color = RED
                     else:
-                        message   = "Conflitos nas pistas!"
+                        message = "Conflitos nas pistas!"
                         msg_color = RED
 
                 if CLEAR_RECT.collidepoint(ev.pos):
-                    board        = new_board()
-                    message      = ""
+                    board = new_board()
+                    message = ""
                     input_locked = False
 
             if ev.type == pg.KEYDOWN and selected != (-1, -1) and not input_locked:
@@ -231,11 +253,11 @@ while running:
         if selected != (-1, -1):
             highlight_cell(window, *selected, BLUE)
         draw_numbers(window)
-        draw_button(window, SOLVE_RECT,  "Solve / Check")
-        draw_button(window, CLEAR_RECT,  "Clear Board")
+        draw_button(window, SOLVE_RECT, "Solve / Check")
+        draw_button(window, CLEAR_RECT, "Clear Board")
         draw_message(window)
 
     pg.display.flip()
     clock.tick(FPS)
 
-pg.quit()  # Finaliza o jogo e fecha a janela
+pg.quit()
