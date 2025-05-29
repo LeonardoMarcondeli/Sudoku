@@ -9,7 +9,7 @@ CELL_SIZE     = 67               # Tamanho de cada célula do tabuleiro
 GRID_SIZE     = CELL_SIZE * 9    # Tamanho total da grade (9x9 células)
 FPS           = 60               # Taxa de atualização (frames por segundo)
 
-# Cores atualizadas para um visual mais moderno e suave
+# Tabela de cores
 WHITE    = (245, 245, 245)
 BLACK    = (30, 30, 30)
 GRAY     = (200, 200, 200)
@@ -23,7 +23,7 @@ RED      = (200, 60, 60)
 # -------------------- PYGAME INIT ---------------------- #
 pg.init()
 window = pg.display.set_mode(WINDOW_SIZE)                    # Cria a janela do jogo
-pg.display.set_caption("Sudoku – Python & Pygame")          # Define o título da janela
+pg.display.set_caption("Sudoku – Maicon Alves e Leonardo Marcondeli")          # Define o título da janela
 clock = pg.time.Clock()                                      # Controla a taxa de frames
 
 pg.font.init()
@@ -39,7 +39,7 @@ def new_board():
 
 board         = new_board()      # Estado atual do tabuleiro
 input_locked  = False            # Indica se o tabuleiro está bloqueado (ex: após resolver)
-message       = ""              # Mensagem a ser exibida ao jogador
+message       = ""               # Mensagem a ser exibida ao jogador
 msg_color     = GREEN            # Cor da mensagem
 selected      = (-1, -1)         # Célula atualmente selecionada
 
@@ -215,7 +215,7 @@ while running:
                 sx, sy = selected
                 if key in "123456789":
                     board[sy][sx] = int(key)
-                elif ev.key == pg.K_BACKSPACE:
+                elif ev.key in (pg.K_BACKSPACE, pg.K_SPACE):
                     board[sy][sx] = EMPTY
 
     # ---------------- RENDER ---------------- #
